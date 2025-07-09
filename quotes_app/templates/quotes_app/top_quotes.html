@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Топ-10 лучших цитат</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .like-btn, .dislike-btn {
+            transition: all 0.2s;
+        }
+        .like-btn.active-vote {
+            background-color: #28a745 !important;
+            border: 2px solid #155724 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        .dislike-btn.active-vote {
+            background-color: #dc3545 !important;
+            border: 2px solid #721c24 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Топ-10 лучших цитат</h1>
+        <a href="{% url 'home' %}" class="btn btn-primary mb-3">На главную</a>
+        <a href="{% url 'worst_quotes' %}" class="btn btn-secondary mb-3">Топ-10 худших цитат</a>
+        {% if quotes %}
+            {% csrf_token %}
+            <ol class="list-group list-group-numbered">
+                {% for quote in quotes %}
+                    <li class="list-group-item">
+                        <blockquote class="blockquote">
+                            <p>{{ quote.text }}</p>
+                            <footer class="blockquote-footer">Источник: {{ quote.source.name }}</footer>
+                        </blockquote>
+                        <p>
+                            Лайки: <span id="likes-count-{{ quote.id }}">{{ quote.likes }}</span>
+                            <button class="btn btn-success btn-sm like-btn" data-quote-id="{{ quote.id }}" data-action="like" data-voted="{% if quote.user_vote == 'like' %}like{% endif %}"><i class="fas fa-thumbs-up"></i> Лайк</button>
+                            |
+                            Дизлайки: <span id="dislikes-count-{{ quote.id }}">{{ quote.dislikes }}</span>
+                            <button class="btn btn-danger btn-sm dislike-btn" data-quote-id="{{ quote.id }}" data-action="dislike" data-voted="{% if quote.user_vote == 'dislike' %}dislike{% endif %}"><i class="fas fa-thumbs-down"></i> Дизлайк</button>
+                        </p>
+                    </li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <p class="text-muted">Цитаты пока не добавлены.</p>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/like_dislike.js' %}"></script>
+</body>
+</html>
