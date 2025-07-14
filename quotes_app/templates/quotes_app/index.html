@@ -30,14 +30,57 @@
     </style>
 </head>
 <body>
+
+{% if not user.is_authenticated %}
+  <form method="get" action="{% url 'login' %}" style="display:inline;">
+      <button type="submit" class="btn btn-primary btn-sm">Войти как администратор</button>
+  </form>
+{% endif %}
+
+
+
+
+
+{% if not user.is_authenticated %}
+  
+{% endif %}
+
+
+{% if user.is_authenticated %}
+  <p>Вы вошли как {{ user.username }} 
+    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">Выйти</button>
+    </form>
+  </p>
+{% else %}
+  
+{% endif %}
+
+
     <div class="container mt-5">
         <h1 class="mb-4">Цитата дня</h1>
         <a href="{% url 'top_quotes' %}" class="btn btn-info mb-3">Топ-10 лучших цитат</a>
         <a href="{% url 'worst_quotes' %}" class="btn btn-secondary mb-3">Топ-10 худших цитат</a>
-        <a href="{% url 'add_quote' %}" class="btn btn-primary mb-3">Добавить цитату</a>
+        {% if user.is_authenticated and user.is_superuser %}
+<a href="{% url 'add_quote' %}" class="btn btn-primary mb-3">Добавить цитату</a>
+{% endif %}
         {% if quote %}
             <blockquote class="blockquote">
-                <p>{{ quote.text }}</p>
+                <p>{{ quote.text }}
+
+{% if user.is_authenticated and user.is_superuser %}
+    <form method="post" action="{% url 'delete_quote' quote.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Удалить цитату</button>
+    </form>
+{% endif %}
+
+
+{% if user.is_authenticated and user.is_superuser %}
+    
+{% endif %}
+</p>
                 <footer class="blockquote-footer">Источник: {{ quote.source.name }}</footer>
             </blockquote>
             <p>Просмотры: <span id="views-count-{{ quote.id }}">{{ quote.views }}</span></p>
@@ -50,7 +93,7 @@
                 <button class="btn btn-danger btn-sm dislike-btn" data-quote-id="{{ quote.id }}" data-action="dislike" data-voted="{% if user_vote == 'dislike' %}dislike{% endif %}"><i class="fas fa-thumbs-down"></i> Дизлайк</button>
             </p>
             <p>Вес: {{ quote.weight }}</p>
-            <button class="btn btn-warning btn-sm delete-btn" data-quote-id="{{ quote.id }}"><i class="fas fa-trash"></i> Удалить цитату</button>
+            
         {% else %}
             <p class="text-muted">Цитаты пока не добавлены.</p>
         {% endif %}
