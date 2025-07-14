@@ -99,37 +99,34 @@ class LikeDislikeView(View):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f'Server error: {str(e)}'}, status=500)
 
-class TopQuotesView(TemplateView):
+class QuoteListView(TemplateView):
+    """Базовый класс для отображения списка цитат."""
+    template_name = None
+    sort_field = None
+    limit = 10
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quotes = Quote.objects.all().order_by(f'-{self.sort_field}')[:self.limit]
+        voted_quotes = self.request.session.get('voted_quotes', {})
+        if isinstance(voted_quotes, list):
+            voted_quotes = {str(qid): 'like' for qid in voted_quotes}
+            self.request.session['voted_quotes'] = voted_quotes
+            self.request.session.modified = True
+        for quote in quotes:
+            quote.user_vote = voted_quotes.get(str(quote.id), '')
+        context['quotes'] = quotes
+        return context
+
+class TopQuotesView(QuoteListView):
+    """Отображение топ-10 цитат по лайкам."""
     template_name = 'quotes_app/top_quotes.html'
+    sort_field = 'likes'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quotes = Quote.objects.all().order_by('-likes')[:10]
-        voted_quotes = self.request.session.get('voted_quotes', {})
-        if isinstance(voted_quotes, list):
-            voted_quotes = {str(qid): 'like' for qid in voted_quotes}
-            self.request.session['voted_quotes'] = voted_quotes
-            self.request.session.modified = True
-        for quote in quotes:
-            quote.user_vote = voted_quotes.get(str(quote.id), '')
-        context['quotes'] = quotes
-        return context
-
-class WorstQuotesView(TemplateView):
+class WorstQuotesView(QuoteListView):
+    """Отображение худших 10 цитат по дизлайкам."""
     template_name = 'quotes_app/worst_quotes.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        quotes = Quote.objects.all().order_by('-dislikes')[:10]
-        voted_quotes = self.request.session.get('voted_quotes', {})
-        if isinstance(voted_quotes, list):
-            voted_quotes = {str(qid): 'like' for qid in voted_quotes}
-            self.request.session['voted_quotes'] = voted_quotes
-            self.request.session.modified = True
-        for quote in quotes:
-            quote.user_vote = voted_quotes.get(str(quote.id), '')
-        context['quotes'] = quotes
-        return context
+    sort_field = 'dislikes'
 
 class DeleteQuoteView(View):
     def post(self, request):
@@ -187,3 +184,18 @@ class DeleteQuoteView(View):
         except Exception as e:
             logger.error(f"Server error: {str(e)}")
             return JsonResponse({'status': 'error', 'message': f'Server error: {str(e)}'}, status=500)
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.utils.decorators import method_decorator
+from .models import Quote
+
+def is_admin(user):
+    return user.is_superuser
+
+@login_required
+@user_passes_test(is_admin)
+def delete_quote(request, quote_id):
+    quote = get_object_or_404(Quote, id=quote_id)
+    quote.delete()
+    return redirect('home')
